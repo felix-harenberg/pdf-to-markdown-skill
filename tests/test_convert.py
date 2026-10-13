@@ -113,3 +113,9 @@ def test_picture_text_of_dropped_image_removed(tmp_path):
     pages, manifest, dropped = layout_chunk(tmp_path, (40, 40), picture_text="Logo<br>")
     assert manifest == [] and dropped == {"small": 1}
     assert "Logo" not in pages[0] and "picture text" not in pages[0]
+
+
+def test_picture_text_counts_as_page_text():
+    # infographic pages may carry all their text inside pictures; they are not "scanned"
+    page = "![](a.png)\n\n<!-- Start of picture text -->\n" + "Umsatz " * 10 + "<!-- End of picture text -->"
+    assert convert.text_length(page) >= convert.MIN_TEXT_CHARS_PER_PAGE
