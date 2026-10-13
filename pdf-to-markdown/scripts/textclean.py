@@ -9,6 +9,7 @@ PLACEHOLDER_PREFIX = "<!-- IMG:"
 
 LOWER = "a-zß-öø-ÿ"
 HYPHEN_RE = re.compile(rf"(\w)-(?:\n| )(?=[{LOWER}])(?!(?:und|oder|bis|sowie|and|or|to)\b)")
+EMPTY_HEADING_RE = re.compile(r"^#{1,6}[ \t]*$", re.M)
 PAGE_NUMBER_RE = re.compile(
     r"^\W*(?:page|seite|s\.|p\.)?\s*\d{1,4}(?:\s*(?:/|of|von)\s*\d{1,4})?\W*$", re.IGNORECASE
 )
@@ -55,4 +56,5 @@ def collapse_blank_lines(text: str) -> str:
 
 
 def clean_pages(pages: list[str]) -> str:
-    return collapse_blank_lines(dehyphenate("\n\n".join(strip_page_furniture(pages))))
+    text = dehyphenate("\n\n".join(strip_page_furniture(pages)))
+    return collapse_blank_lines(EMPTY_HEADING_RE.sub("", text))
