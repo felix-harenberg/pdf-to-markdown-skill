@@ -51,9 +51,10 @@ pdf-to-markdown/
   - Gleicher Bild-Hash (xref/Inhalt) auf ≥3 Seiten (Logos, wiederkehrende Deko)
   - Deckt ≥90 % der Seite ab **und** auf der Seite liegt extrahierbarer Text darüber (Hintergrund)
   - Extremes Seitenverhältnis > 8:1 (Trennlinien, Banner)
-- **Vektorgrafiken:** Seiten mit vielen Zeichenoperationen in einem zusammenhängenden Bereich (Charts aus Vektoren) werden als Bereich gerendert und ebenfalls Kandidaten.
+- **Vektorgrafiken:** pymupdf4llm rendert Bereiche mit Vektorgrafiken (Charts aus Linien) selbst als Bild (`write_images=True`); sie durchlaufen denselben Filter.
 - Jedes verbleibende Bild wird als PNG in `<workdir>/` gespeichert, auf max. 1024 px Kantenlänge skaliert, und im MD durch einen Platzhalter `<!-- IMG:p{seite}_{n} -->` an seiner Leseposition ersetzt.
-- Schreibt `<workdir>/manifest.json`: pro Kandidat `id`, `seite`, `pfad`, `größe`, `kontext_davor`, `kontext_danach` (je ~300 Zeichen).
+- Schreibt `<workdir>/manifest.json`: pro Kandidat `id`, `page`, `path`, `width_pt`, `height_pt`, `context_before`, `context_after` (je ~300 Zeichen).
+- `<workdir>` ist standardmäßig `<output-stem>_images/` neben der MD-Datei.
 - Gibt auf stdout eine kurze Zusammenfassung aus: Seiten, Zeichen, Kandidaten, verworfene Bilder nach Grund.
 - **Exit-Codes:** 0 = ok, 2 = Abhängigkeit fehlt (→ Fallback), 3 = PDF hat kaum extrahierbaren Text (vermutlich ein Scan; der Hinweis geht an den Nutzer).
 
