@@ -29,14 +29,15 @@ DPI = 150
 MAX_EDGE_PX = 1024
 CONTEXT_CHARS = 300
 MIN_TEXT_CHARS_PER_PAGE = 50
+IMAGE_LINK = r"!\[[^\]]*\]\(([^)]+)\)"
 # an image ref, optionally followed by the text pymupdf4llm found inside the picture
 IMAGE_REF_RE = re.compile(
-    r"!\[[^\]]*\]\(([^)]+)\)"
-    r"(?:\s*<!-- Start of picture text -->(.*?)<!-- End of picture text -->)?", re.S)
+    IMAGE_LINK + r"(?:\s*<!-- Start of picture text -->(.*?)<!-- End of picture text -->)?", re.S)
 
 
 def text_length(markdown):
-    return len(IMAGE_REF_RE.sub("", markdown).strip())
+    """Length of the page text without image links; text inside pictures counts."""
+    return len(re.sub(IMAGE_LINK, "", markdown).strip())
 
 
 def layout_class(chunk, offset):
