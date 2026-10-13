@@ -7,9 +7,11 @@ description: Convert PDF files into clean, LLM-ready Markdown for use as context
 
 Produces a single `.md` file next to the PDF: text, headings, lists and tables preserved, headers/footers removed, images either dropped or replaced by short text descriptions. No image files remain.
 
-`SKILL_DIR` below means the directory containing this file.
+`SKILL_DIR` below means the directory containing this file (Claude Code shows it as the skill's base directory; on claude.ai it is typically `/mnt/skills/user/pdf-to-markdown`).
 
 ## Workflow
+
+Use `python3` if `python` is not found, and the same interpreter for pip.
 
 1. **Convert**
 
@@ -17,12 +19,13 @@ Produces a single `.md` file next to the PDF: text, headings, lists and tables p
    python "SKILL_DIR/scripts/convert.py" "<input.pdf>" [--out "<output.md>"]
    ```
 
+   - If the PDF's folder is not writable or not visible to the user (e.g. claude.ai uploads), pass `--out` into a user-visible output folder (on claude.ai typically `/mnt/user-data/outputs/<name>.md`) and give the user that file. If the output `.md` already exists, ask the user before overwriting it.
    - Exit 0: continue. The output prints the markdown path, the `Workdir`, the image counts and an approximate token count.
-   - Exit 1: the input path is wrong. Check it with the user.
+   - Exit 1: the input path is wrong, or the workdir (`<output>_images` or `--workdir`) already exists and holds other files, which are never deleted. Check with the user; move the folder away or pass another `--workdir`.
    - Exit 2 (missing dependency): run `python -m pip install -r "SKILL_DIR/requirements.txt"` once (same `python` as above) and retry. If pip refuses (e.g. "externally managed environment"), create a venv and use its python. If it still fails, use the **Fallback**.
    - Exit 3 (probably scanned): tell the user OCR is not supported and ask whether to use the **Fallback** instead.
 
-2. **Review image candidates.** Read `<Workdir>/manifest.json`. For each entry, view the image at `path` and read `context_before` / `context_after`; `picture_text`, if present, is raw text found inside the image (labels, axis ticks) - use it to read values. It is not in the markdown, so "drop" discards it too: if that text carries content, describe the image instead. If there are more than 40 candidates, work in batches of 20 and save decisions after each batch.
+2. **Review image candidates.** Read `<Workdir>/manifest.json`. For each entry, view the image at `path` and read `context_before` / `context_after`; `picture_text`, if present, is raw text found inside the image (labels, axis ticks) - use it to read values. `picture_text` is the exact source for handles, URLs and numbers; copy them from there rather than reading them off the image. It is not in the markdown, so "drop" discards it too: if that text carries content, describe the image instead. If there are more than 40 candidates, work in batches of 20 and save decisions after each batch.
 
 3. **Write `<Workdir>/decisions.json`**, mapping every id to `"drop"` or to a markdown description:
 
@@ -64,9 +67,15 @@ Describe (charts, diagrams, flowcharts, screenshots with relevant content, table
 - Give concrete numbers, labels, trends, and the order of steps.
 - A table shown as an image becomes a markdown table instead of a quote.
 - A formula becomes a LaTeX display block `$$...$$`, keeping its equation number, e.g. `\qquad (2)`.
+- Screenshots and UI images (profiles, dashboards, apps, web pages): transcribe every visible number, @handle, URL, name, date and button/label text verbatim, e.g. `> **[Figure: Instagram profile screenshot]** @acme_shop · 312 posts · 12.4K followers · 180 following · bio link: acme.com/start`. Exact values are the content; do not round, paraphrase or select.
 - Do not repeat what `context_before` / `context_after` already say.
-- Keep it short: usually 1-3 sentences.
+- Keep it short: usually 1-3 sentences - but never drop a visible value to stay short (screenshots, charts and tables may need more).
 
 ## Fallback (no Python or pymupdf)
 
-Read the PDF directly in blocks of about 20 pages and append the result to the output file block by block. Reading page ranges needs poppler (`pdftoppm`); if the Read tool reports it missing, a small PDF can be read in one go without a page range - otherwise ask the user to install `pymupdf4llm` or poppler. Apply the same rules: markdown headings, lists and tables; no headers, footers or page numbers; images dropped or described as above. Start the file with the same front matter as convert.py (`title`, `source`, `pages`). For PDFs over 100 pages, tell the user first that this reads every page visually and is slower and more expensive.
+Read the PDF directly in blocks of about 20 pages and append the result to the output file block by block.
+
+- Claude Code: read pages with the Read tool and page ranges. This needs poppler (`pdftoppm`); if that fails, a short PDF may be readable in one go without a page range - otherwise ask the user to install `pymupdf4llm` or poppler.
+- claude.ai: the uploaded PDF is usually already in context; otherwise render pages with pymupdf if it is available.
+
+Apply the same rules: markdown headings, lists and tables; no headers, footers or page numbers; images dropped or described as above. Start the file with the same front matter as convert.py (`title`, `source`, `pages`). For PDFs over 100 pages, tell the user first that this reads every page visually and is slower and more expensive.
