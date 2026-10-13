@@ -224,6 +224,11 @@ def test_placeholders_never_removed():
     assert strip_page_furniture(pages) == pages
 
 
+def test_headings_never_removed():
+    pages = [f"# Kapitel {n}\n\n{TOPICS[n - 1]} Text." for n in range(1, 6)]
+    assert strip_page_furniture(pages) == pages
+
+
 def test_dehyphenate():
     assert dehyphenate("Die Daten-\nbank") == "Die Datenbank"
     assert dehyphenate("Die Daten- bank") == "Die Datenbank"
@@ -283,7 +288,7 @@ def strip_page_furniture(pages: list[str]) -> list[str]:
     repeating = {k for k, n in counts.items() if n >= threshold and re.search(r"[^\W\d_]", k)}
 
     def furniture(line):
-        if line.lstrip().startswith(PLACEHOLDER_PREFIX):
+        if line.lstrip().startswith(("#", PLACEHOLDER_PREFIX)):  # headings like "# Kapitel 3" stay
             return False
         return _key(line) in repeating or bool(PAGE_NUMBER_RE.match(line.strip()))
 
@@ -311,7 +316,7 @@ def clean_pages(pages: list[str]) -> str:
 - [ ] **Step 5: Tests laufen lassen**
 
 Run: `.venv/Scripts/python -m pytest tests/test_textclean.py -v`
-Expected: 7 passed
+Expected: 8 passed
 
 - [ ] **Step 6: Commit**
 
@@ -825,7 +830,7 @@ Falls einzelne Struktur-Tests (`test_structure_preserved`) an pymupdf4llm-Eigenh
 - [ ] **Step 7: Gesamte Suite und Commit**
 
 Run: `.venv/Scripts/python -m pytest -v`
-Expected: alle Tests grün (7 + 7 + 9)
+Expected: alle Tests grün (8 + 7 + 9)
 
 ```bash
 git add pdf-to-markdown/scripts/convert.py tests/pdfs.py tests/conftest.py tests/test_convert.py
@@ -956,7 +961,7 @@ if __name__ == "__main__":
 - [ ] **Step 4: Tests laufen lassen**
 
 Run: `.venv/Scripts/python -m pytest -v`
-Expected: alle grün (7 + 7 + 9 + 4)
+Expected: alle grün (8 + 7 + 9 + 4)
 
 - [ ] **Step 5: Commit**
 
@@ -1180,7 +1185,7 @@ Danach dasselbe mit `blueprint.pdf`.
 - [ ] **Step 5: Fallback testen**
 
 ```bash
-python -m venv /tmp/nofitz && /tmp/nofitz/Scripts/python "pdf-to-markdown/scripts/convert.py" evals/local/attention.pdf; echo "exit $?"
+python -m venv /tmp/nodeps && /tmp/nodeps/Scripts/python "pdf-to-markdown/scripts/convert.py" evals/local/attention.pdf; echo "exit $?"
 ```
 Expected: `exit 2`. Danach in einer neuen Session den Skill mit dem Hinweis „pymupdf ist nicht installierbar, nutze den Fallback“ auf den ersten 10 Seiten von attention.pdf testen.
 
