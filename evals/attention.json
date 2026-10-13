@@ -1,0 +1,13 @@
+{
+  "pdf_url": "https://arxiv.org/pdf/1706.03762",
+  "questions": [
+    {"q": "How many identical layers does the encoder stack of the base model have?", "a": "6", "source": "text"},
+    {"q": "What is d_model in the base model?", "a": "512", "source": "text"},
+    {"q": "How many attention heads does the base model use?", "a": "8", "source": "text"},
+    {"q": "What BLEU score does the big Transformer reach on WMT 2014 English-German?", "a": "28.4", "source": "table"},
+    {"q": "On which hardware was the model trained?", "a": "8 NVIDIA P100 GPUs", "source": "text"},
+    {"q": "How many warmup steps does the learning-rate schedule use?", "a": "4000", "source": "text"},
+    {"q": "In the decoder layer diagram, which sub-layer sits between the masked multi-head attention and the feed-forward sub-layer?", "a": "Multi-head attention over the encoder output (encoder-decoder attention)", "source": "figure"},
+    {"q": "List the operations of scaled dot-product attention in order as shown in the figure.", "a": "MatMul, Scale, Mask (optional), SoftMax, MatMul", "source": "figure"}
+  ]
+}
