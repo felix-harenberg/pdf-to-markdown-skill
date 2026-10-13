@@ -40,37 +40,49 @@ def text_length(markdown):
     return len(re.sub(IMAGE_LINK, "", markdown).strip())
 
 
+def picture_text(match):
+    """Text pymupdf4llm found inside the picture of an IMAGE_REF_RE match, one line per <br>."""
+    return (match.group(2) or "").replace("<br>", "\n").strip()
+
+
+def without_link(match):
+    """Replacement for a dropped or missing image: the link goes, the text found in it stays."""
+    text = picture_text(match)
+    return f"\n\n{text}\n\n" if text else ""
+
+
 def layout_class(chunk, offset):
     """Class of the pymupdf4llm layout box ("picture", "formula", ...) covering a text offset."""
     for box in chunk.get("page_boxes") or []:
-        start, end = box["pos"]
+        start, end = box.get("pos") or (0, 0)
         if start <= offset < end:
-            return box["class"]
+            return box.get("class") or "picture"
     return "picture"
 
 
 def find_images(chunks, doc, image_dir):
-    """Yield (page_index, ref, path, ImageInfo, picture_text) for every image pymupdf4llm wrote."""
+    """Yield (page_index, IMAGE_REF_RE match, path, ImageInfo) for every image pymupdf4llm wrote."""
     for page_index, chunk in enumerate(chunks):
         rect = doc[page_index].rect
-        has_text = text_length(chunk["text"]) >= MIN_TEXT_CHARS_PER_PAGE
-        for match in IMAGE_REF_RE.finditer(chunk["text"]):
+        text = chunk["text"]
+        for match in IMAGE_REF_RE.finditer(text):
+            # the image's own picture text does not make it a background behind other text
+            others = text[:match.start()] + text[match.end():]
             path = Path(match.group(1))
             if not path.is_file():
                 path = image_dir / path.name
             if not path.is_file():
                 continue
             pix = pymupdf.Pixmap(str(path))
-            picture_text = (match.group(2) or "").replace("<br>", "\n").strip()
-            yield page_index, match.group(0), path, ImageInfo(
+            yield page_index, match, path, ImageInfo(
                 page=page_index + 1,
                 width_pt=pix.width * 72 / DPI,
                 height_pt=pix.height * 72 / DPI,
                 page_area_pt=rect.width * rect.height,
                 digest=hashlib.sha1(pix.samples).hexdigest(),
-                page_has_text=has_text,
+                page_has_text=text_length(others) >= MIN_TEXT_CHARS_PER_PAGE,
                 kind=layout_class(chunk, match.start()),
-            ), picture_text
+            )
 
 
 def save_scaled(source, target):
@@ -83,15 +95,16 @@ def save_scaled(source, target):
 def place_images(chunks, images, workdir):
     """Swap kept image refs for placeholders and remove the rest. Returns pages, manifest, drop counts.
 
-    Text pymupdf4llm found inside a picture goes with its image: into the manifest or away.
+    Text pymupdf4llm found inside a kept picture moves into the manifest; for dropped
+    pictures it stays in the markdown as plain text.
     """
     pages = [chunk["text"] for chunk in chunks]
     manifest, dropped, per_page = [], Counter(), Counter()
-    for (page_index, ref, path, info, picture_text), reason in zip(
-            images, drop_reasons([i[3] for i in images])):
+    for (page_index, match, path, info), reason in zip(images, drop_reasons([i[3] for i in images])):
+        ref = match.group(0)
         if reason:
             dropped[reason] += 1
-            pages[page_index] = pages[page_index].replace(ref, "", 1)
+            pages[page_index] = pages[page_index].replace(ref, without_link(match), 1)
             continue
         per_page[page_index] += 1
         image_id = f"p{page_index + 1}_{per_page[page_index]}"
@@ -100,11 +113,11 @@ def place_images(chunks, images, workdir):
         pages[page_index] = pages[page_index].replace(ref, f"\n\n<!-- IMG:{image_id} -->\n\n", 1)
         entry = {"id": image_id, "page": page_index + 1, "path": str(target.resolve()),
                  "width_pt": round(info.width_pt), "height_pt": round(info.height_pt)}
-        if picture_text:
-            entry["picture_text"] = picture_text
+        if picture_text(match):
+            entry["picture_text"] = picture_text(match)
         manifest.append(entry)
     # refs whose file could not be found are removed as well
-    return [IMAGE_REF_RE.sub("", page) for page in pages], manifest, dropped
+    return [IMAGE_REF_RE.sub(without_link, page) for page in pages], manifest, dropped
 
 
 def add_context(manifest, md):

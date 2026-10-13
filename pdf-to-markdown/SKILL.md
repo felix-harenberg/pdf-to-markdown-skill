@@ -22,7 +22,7 @@ Produces a single `.md` file next to the PDF: text, headings, lists and tables p
    - Exit 2 (missing dependency): run `python -m pip install -r "SKILL_DIR/requirements.txt"` once (same `python` as above) and retry. If pip refuses (e.g. "externally managed environment"), create a venv and use its python. If it still fails, use the **Fallback**.
    - Exit 3 (probably scanned): tell the user OCR is not supported and ask whether to use the **Fallback** instead.
 
-2. **Review image candidates.** Read `<Workdir>/manifest.json`. For each entry, view the image at `path` and read `context_before` / `context_after`; `picture_text`, if present, is raw text found inside the image (labels, axis ticks) - use it to read values, it is not in the markdown. If there are more than 40 candidates, work in batches of 20 and save decisions after each batch.
+2. **Review image candidates.** Read `<Workdir>/manifest.json`. For each entry, view the image at `path` and read `context_before` / `context_after`; `picture_text`, if present, is raw text found inside the image (labels, axis ticks) - use it to read values. It is not in the markdown, so "drop" discards it too: if that text carries content, describe the image instead. If there are more than 40 candidates, work in batches of 20 and save decisions after each batch.
 
 3. **Write `<Workdir>/decisions.json`**, mapping every id to `"drop"` or to a markdown description:
 

@@ -75,16 +75,16 @@ def test_long_pdf(tmp_path):
     assert "Abschnitt 1" in md and "Abschnitt 300" in md
 
 
-def layout_chunk(tmp_path, image_px, box_class="picture", picture_text=None):
+def layout_chunk(tmp_path, image_px, box_class="picture", picture_text=None,
+                 before="Davor kommt ein Absatz.", after="Danach kommt ein Absatz."):
     """A pymupdf4llm-style page chunk with one image ref inside a layout box of the given class."""
     image = tmp_path / "raw.png"
     image.write_bytes(png(*image_px, bars=True))
-    text = f"Davor kommt ein Absatz.\n\n![]({image.as_posix()})\n\n"
+    text = f"{before}\n\n![]({image.as_posix()})\n\n"
     if picture_text is not None:
         text += f"<!-- Start of picture text -->\n{picture_text}<!-- End of picture text -->\n\n"
     start = text.index("![")
-    text_after = "Danach kommt ein Absatz."
-    chunk = {"text": text + text_after,
+    chunk = {"text": text + after,
              "page_boxes": [{"class": box_class, "pos": (start, len(text))}]}
     doc = pymupdf.open()
     doc.new_page()
@@ -109,10 +109,43 @@ def test_picture_text_moves_into_manifest(tmp_path):
     assert "<!-- IMG:p1_1 -->" in pages[0] and "Danach kommt" in pages[0]
 
 
-def test_picture_text_of_dropped_image_removed(tmp_path):
-    pages, manifest, dropped = layout_chunk(tmp_path, (40, 40), picture_text="Logo<br>")
+def test_picture_text_of_dropped_image_kept_in_markdown(tmp_path):
+    pages, manifest, dropped = layout_chunk(tmp_path, (40, 40), picture_text="Neu: 30 % Rabatt<br>")
     assert manifest == [] and dropped == {"small": 1}
-    assert "Logo" not in pages[0] and "picture text" not in pages[0]
+    assert "Neu: 30 % Rabatt" in pages[0]
+    assert "picture text" not in pages[0] and "![" not in pages[0]
+
+
+def test_full_page_picture_holding_the_page_text_is_not_background(tmp_path):
+    # a page whose only text sits inside one full-page picture (1240 x 1755 px = A4 at 150 dpi)
+    text = "Unsere Ergebnisse 2025<br>Umsatz stieg um 12 Prozent<br>Kosten sanken um 3 Prozent<br>"
+    pages, manifest, dropped = layout_chunk(tmp_path, (1240, 1755), picture_text=text,
+                                           before="", after="")
+    assert not dropped
+    assert manifest[0]["picture_text"].startswith("Unsere Ergebnisse 2025\nUmsatz stieg")
+
+
+def test_picture_text_of_missing_image_file_kept(tmp_path):
+    chunk = {"text": "Text.\n\n![](gone.png)\n\n<!-- Start of picture text -->\nAchse 2024<br>"
+                     "<!-- End of picture text -->\n\nMehr Text."}
+    doc = pymupdf.open()
+    doc.new_page()
+    images = list(convert.find_images([chunk], doc, tmp_path))
+    pages, manifest, _ = convert.place_images([chunk], images, tmp_path)
+    assert images == [] and manifest == []
+    assert "Achse 2024" in pages[0] and "gone.png" not in pages[0] and "picture text" not in pages[0]
+
+
+def test_installed_layout_model_still_knows_formulas():
+    # convert.layout_class relies on pymupdf4llm's layout class names; fail loudly if they change
+    from pymupdf.layout.onnx.ImageFeatureExtractorV2 import _CLASS_NAMES
+    assert {"picture", "formula"} <= set(_CLASS_NAMES)
+
+
+def test_layout_class_tolerates_unknown_box_format():
+    chunk = {"page_boxes": [{"kind": "formula", "range": (0, 10)}, {"class": "formula", "pos": (0, 10)}]}
+    assert convert.layout_class(chunk, 5) == "formula"
+    assert convert.layout_class({"page_boxes": [{"type": "x"}]}, 5) == "picture"
 
 
 def test_picture_text_counts_as_page_text():
