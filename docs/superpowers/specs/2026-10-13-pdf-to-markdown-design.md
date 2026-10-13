@@ -103,7 +103,7 @@ pdf-to-markdown/
    - `finalize.py` → ersetzt und entfernt Platzhalter korrekt, räumt auf
    - 300-Seiten-PDF → vollständig und in < 60 s
 2. **Skill-Test (manuell):**
-   - Test-PDFs: `C:\FromPhone\TD Social Media Blueprint.pdf` (grafiklastig, 50 MB) und ein frei verfügbares arXiv-Paper mit Diagrammen.
+   - Test-PDFs: a private, image-heavy marketing PDF (local only, evals/local/blueprint.pdf) (grafiklastig, 50 MB) und ein frei verfügbares arXiv-Paper mit Diagrammen.
    - Prüfen: Löst der Skill aus? Sind die Bild-Entscheidungen sinnvoll? Funktioniert der Fallback ohne pymupdf?
 3. **Q&A-Qualitätstest (`evals/`):**
    - Pro Test-PDF gibt es 5–10 Fragen, ein Teil davon nur über Abbildungen beantwortbar.

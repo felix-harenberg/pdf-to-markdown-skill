@@ -14,7 +14,7 @@
 
 - Python ≥3.10. Einzige Laufzeit-Abhängigkeit: `pymupdf4llm`.
 - Eigener Code unter MIT. pymupdf (AGPL) wird **nicht** mitgeliefert, nur als Abhängigkeit genannt.
-- **Niemals** `C:\FromPhone\TD Social Media Blueprint.pdf`, daraus erzeugtes Markdown oder Fragen dazu committen (privates/fremdes Material). Lokale Eval-Dateien liegen in `evals/local/` (gitignored).
+- **Niemals** das private, grafiklastige Marketing-PDF des Nutzers (lokal, evals/local/blueprint.pdf), daraus erzeugtes Markdown oder Fragen dazu committen (privates/fremdes Material). Lokale Eval-Dateien liegen in `evals/local/` (gitignored).
 - Keine Test-PDFs im Repo. Tests erzeugen ihre PDFs selbst.
 - README und SKILL.md auf Englisch (öffentliches Repo). Bildbeschreibungen im Output in der Sprache des Dokuments.
 - Bildfilter-Schwellen (aus Spec): längste Seite < 100 pt **oder** Fläche < 2 % der Seite → `small`; gleiches Bild auf ≥3 Seiten → `repeated`; Seitenverhältnis > 8:1 → `banner`; ≥90 % der Seitenfläche **und** Seite hat Text → `background`.
@@ -1157,7 +1157,7 @@ cp -r pdf-to-markdown ~/.claude/skills/
 
 ```bash
 mkdir -p evals/local
-cp "/c/FromPhone/TD Social Media Blueprint.pdf" evals/local/blueprint.pdf
+cp "<Pfad zum privaten PDF>" evals/local/blueprint.pdf
 curl -L -o evals/local/attention.pdf https://arxiv.org/pdf/1706.03762
 ```
 
