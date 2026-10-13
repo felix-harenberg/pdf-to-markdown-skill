@@ -17,6 +17,7 @@ class ImageInfo:
     page_area_pt: float
     digest: str
     page_has_text: bool
+    kind: str = "picture"  # layout class from pymupdf4llm, e.g. "picture" or "formula"
 
 
 def drop_reasons(images: list[ImageInfo]) -> list[str | None]:
@@ -31,6 +32,8 @@ def drop_reasons(images: list[ImageInfo]) -> list[str | None]:
         short, long = sorted((image.width_pt, image.height_pt))
         if len(pages_per_digest[image.digest]) >= REPEAT_PAGES:
             reasons.append("repeated")
+        elif image.kind == "formula":  # equations are thin and small, but never decoration
+            reasons.append(None)
         elif long < MIN_SIDE_PT or area < MIN_AREA_SHARE * image.page_area_pt:
             reasons.append("small")
         elif short == 0 or long / short > MAX_ASPECT:

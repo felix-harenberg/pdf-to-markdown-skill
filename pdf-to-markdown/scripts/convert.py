@@ -29,15 +29,27 @@ DPI = 150
 MAX_EDGE_PX = 1024
 CONTEXT_CHARS = 300
 MIN_TEXT_CHARS_PER_PAGE = 50
-IMAGE_REF_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+# an image ref, optionally followed by the text pymupdf4llm found inside the picture
+IMAGE_REF_RE = re.compile(
+    r"!\[[^\]]*\]\(([^)]+)\)"
+    r"(?:\s*<!-- Start of picture text -->(.*?)<!-- End of picture text -->)?", re.S)
 
 
 def text_length(markdown):
     return len(IMAGE_REF_RE.sub("", markdown).strip())
 
 
+def layout_class(chunk, offset):
+    """Class of the pymupdf4llm layout box ("picture", "formula", ...) covering a text offset."""
+    for box in chunk.get("page_boxes") or []:
+        start, end = box["pos"]
+        if start <= offset < end:
+            return box["class"]
+    return "picture"
+
+
 def find_images(chunks, doc, image_dir):
-    """Yield (page_index, ref, path, ImageInfo) for every image pymupdf4llm wrote and referenced."""
+    """Yield (page_index, ref, path, ImageInfo, picture_text) for every image pymupdf4llm wrote."""
     for page_index, chunk in enumerate(chunks):
         rect = doc[page_index].rect
         has_text = text_length(chunk["text"]) >= MIN_TEXT_CHARS_PER_PAGE
@@ -48,6 +60,7 @@ def find_images(chunks, doc, image_dir):
             if not path.is_file():
                 continue
             pix = pymupdf.Pixmap(str(path))
+            picture_text = (match.group(2) or "").replace("<br>", "\n").strip()
             yield page_index, match.group(0), path, ImageInfo(
                 page=page_index + 1,
                 width_pt=pix.width * 72 / DPI,
@@ -55,7 +68,8 @@ def find_images(chunks, doc, image_dir):
                 page_area_pt=rect.width * rect.height,
                 digest=hashlib.sha1(pix.samples).hexdigest(),
                 page_has_text=has_text,
-            )
+                kind=layout_class(chunk, match.start()),
+            ), picture_text
 
 
 def save_scaled(source, target):
@@ -66,10 +80,14 @@ def save_scaled(source, target):
 
 
 def place_images(chunks, images, workdir):
-    """Swap kept image refs for placeholders and remove the rest. Returns pages, manifest, drop counts."""
+    """Swap kept image refs for placeholders and remove the rest. Returns pages, manifest, drop counts.
+
+    Text pymupdf4llm found inside a picture goes with its image: into the manifest or away.
+    """
     pages = [chunk["text"] for chunk in chunks]
     manifest, dropped, per_page = [], Counter(), Counter()
-    for (page_index, ref, path, info), reason in zip(images, drop_reasons([i[3] for i in images])):
+    for (page_index, ref, path, info, picture_text), reason in zip(
+            images, drop_reasons([i[3] for i in images])):
         if reason:
             dropped[reason] += 1
             pages[page_index] = pages[page_index].replace(ref, "", 1)
@@ -79,8 +97,11 @@ def place_images(chunks, images, workdir):
         target = workdir / f"{image_id}.png"
         save_scaled(path, target)
         pages[page_index] = pages[page_index].replace(ref, f"\n\n<!-- IMG:{image_id} -->\n\n", 1)
-        manifest.append({"id": image_id, "page": page_index + 1, "path": str(target.resolve()),
-                         "width_pt": round(info.width_pt), "height_pt": round(info.height_pt)})
+        entry = {"id": image_id, "page": page_index + 1, "path": str(target.resolve()),
+                 "width_pt": round(info.width_pt), "height_pt": round(info.height_pt)}
+        if picture_text:
+            entry["picture_text"] = picture_text
+        manifest.append(entry)
     # refs whose file could not be found are removed as well
     return [IMAGE_REF_RE.sub("", page) for page in pages], manifest, dropped
 
