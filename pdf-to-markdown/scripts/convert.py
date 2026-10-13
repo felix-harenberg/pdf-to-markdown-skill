@@ -87,8 +87,10 @@ def find_images(chunks, doc, image_dir):
 
 def save_scaled(source, target):
     pix = pymupdf.Pixmap(str(source))
-    while max(pix.width, pix.height) > MAX_EDGE_PX:
-        pix.shrink(1)
+    longest = max(pix.width, pix.height)
+    if longest > MAX_EDGE_PX:
+        factor = MAX_EDGE_PX / longest
+        pix = pymupdf.Pixmap(pix, max(1, round(pix.width * factor)), max(1, round(pix.height * factor)), None)
     pix.save(str(target))
 
 
@@ -135,6 +137,11 @@ def front_matter(doc, pdf):
             f"source: {json.dumps(pdf.name, ensure_ascii=False)}\npages: {doc.page_count}\n---\n\n")
 
 
+def is_replaceable_workdir(path):
+    """A workdir may be wiped only if it is an empty directory or one convert.py wrote before."""
+    return path.is_dir() and (not any(path.iterdir()) or (path / "manifest.json").is_file())
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("pdf", type=Path)
@@ -146,6 +153,11 @@ def main(argv=None):
         return 1
     out = args.out or args.pdf.with_suffix(".md")
     workdir = args.workdir or out.with_name(f"{out.stem}_images")
+
+    if workdir.exists() and not is_replaceable_workdir(workdir):
+        print(f"Workdir exists and is not a previous convert.py workdir: {workdir}. "
+              "Move it away or choose another one with --workdir.", file=sys.stderr)
+        return 1
 
     doc = pymupdf.open(args.pdf)
     with tempfile.TemporaryDirectory() as raw_dir:
