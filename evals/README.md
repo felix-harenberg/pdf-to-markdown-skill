@@ -18,3 +18,4 @@ Private PDFs and their questions go into `evals/local/` (gitignored), never into
 
 | PDF | Pages | Accuracy | Figure questions | MD tokens | PDF tokens (approx.) |
 |---|---|---|---|---|---|
+| Attention Is All You Need | 15 | 8/8 (100%) | 2/2 | ~10,400 | ~32,400 |

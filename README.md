@@ -36,7 +36,7 @@ Result: `report.md` next to the PDF.
 
 ## Quality
 
-See [evals/](evals/). Results are added after the first evaluation run.
+Attention Is All You Need (15 pages): 8/8 questions answered correctly from the Markdown, ~10,400 tokens instead of ~32,400. See [evals/](evals/).
 
 ## Development
 
