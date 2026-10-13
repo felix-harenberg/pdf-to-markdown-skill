@@ -48,3 +48,8 @@ def test_collapse_blank_lines():
 
 def test_clean_pages_joins_pages():
     assert clean_pages(["Erste Seite.", "Zweite Seite."]) == "Erste Seite.\n\nZweite Seite.\n"
+
+
+def test_empty_headings_removed():
+    assert clean_pages(["Text oben.\n\n###### \n\n## Echt\n\n#\nText unten."]) == (
+        "Text oben.\n\n## Echt\n\nText unten.\n")
