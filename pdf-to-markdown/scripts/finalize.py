@@ -40,7 +40,12 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     decisions_file = args.workdir / "decisions.json"
-    decisions = json.loads(decisions_file.read_text(encoding="utf-8")) if decisions_file.is_file() else {}
+    try:
+        decisions = json.loads(decisions_file.read_text(encoding="utf-8")) if decisions_file.is_file() else {}
+    except json.JSONDecodeError as error:
+        print(f"{decisions_file} is not valid JSON ({error}). Nothing was changed; fix the file "
+              "and run again (a backslash must be written as \\\\).", file=sys.stderr)
+        return 1
     md, missing = apply_decisions(args.markdown.read_text(encoding="utf-8"), decisions)
     args.markdown.write_text(md, encoding="utf-8")
     if missing:

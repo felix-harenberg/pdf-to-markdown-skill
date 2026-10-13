@@ -35,3 +35,15 @@ def test_main_without_decisions_drops_everything(tmp_path, capsys):
     assert main([str(md), str(work)]) == 0
     assert "IMG" not in md.read_text(encoding="utf-8")
     assert "p2_1, p3_1" in capsys.readouterr().out
+
+
+def test_main_with_invalid_json_keeps_everything(tmp_path, capsys):
+    # e.g. LaTeX written into decisions.json with unescaped backslashes
+    md, work = tmp_path / "doc.md", tmp_path / "doc_images"
+    md.write_text(MD, encoding="utf-8")
+    work.mkdir()
+    (work / "decisions.json").write_text(r'{"p2_1": "$$\mathrm{x}$$"}', encoding="utf-8")
+    assert main([str(md), str(work)]) == 1
+    assert md.read_text(encoding="utf-8") == MD
+    assert work.exists()
+    assert "decisions.json" in capsys.readouterr().err
