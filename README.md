@@ -10,17 +10,20 @@ A [Claude skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/o
 
 ## Install
 
-**Claude Code**
+**Claude Code** (requires Python 3.10+)
 
 ```bash
 git clone https://github.com/felix-harenberg/pdf-to-markdown-skill
+mkdir -p ~/.claude/skills
 cp -r pdf-to-markdown-skill/pdf-to-markdown ~/.claude/skills/
-pip install -r ~/.claude/skills/pdf-to-markdown/requirements.txt
+python3 -m pip install -r ~/.claude/skills/pdf-to-markdown/requirements.txt
 ```
+
+On Windows use `python` instead of `python3`.
 
 **claude.ai / Claude Desktop**
 
-Zip the `pdf-to-markdown/` folder and upload it under *Settings → Capabilities → Skills*. If the Python dependency is not available there, the skill falls back to reading the PDF directly.
+Zip the `pdf-to-markdown/` folder and upload it under *Settings → Capabilities → Skills*. Code execution and file creation must be enabled for the skill to run its scripts. If the Python dependency is not available there, the skill falls back to reading the PDF directly.
 
 ## Usage
 
@@ -41,6 +44,11 @@ Attention Is All You Need (15 pages): 8/8 questions answered correctly from the 
 ## Development
 
 ```bash
+# Linux / macOS
+python3 -m venv .venv && .venv/bin/python -m pip install -r pdf-to-markdown/requirements.txt pytest
+.venv/bin/python -m pytest
+
+# Windows (Git Bash)
 python -m venv .venv && .venv/Scripts/python -m pip install -r pdf-to-markdown/requirements.txt pytest
 .venv/Scripts/python -m pytest
 ```
