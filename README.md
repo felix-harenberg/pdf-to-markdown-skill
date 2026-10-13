@@ -1,3 +1,50 @@
 # pdf-to-markdown
 
-A Claude skill that turns PDFs into clean, LLM-ready Markdown. Work in progress.
+A [Claude skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) that turns PDFs into clean, LLM-ready Markdown, so you can drop them into context without wasting tokens.
+
+- Text, headings, lists and tables preserved
+- Headers, footers and page numbers removed, hyphenated words rejoined
+- Decorative images (logos, icons, backgrounds, stock photos) dropped
+- Informative images (charts, diagrams, tables as images) replaced by short text descriptions written by Claude
+- Long PDFs are fine: text is extracted by a script, Claude only looks at the few images that matter
+
+## Install
+
+**Claude Code**
+
+```bash
+git clone https://github.com/felix-harenberg/pdf-to-markdown-skill
+cp -r pdf-to-markdown-skill/pdf-to-markdown ~/.claude/skills/
+pip install -r ~/.claude/skills/pdf-to-markdown/requirements.txt
+```
+
+**claude.ai / Claude Desktop**
+
+Zip the `pdf-to-markdown/` folder and upload it under *Settings → Capabilities → Skills*. If the Python dependency is not available there, the skill falls back to reading the PDF directly.
+
+## Usage
+
+> Convert `report.pdf` to markdown.
+
+Result: `report.md` next to the PDF.
+
+## How it works
+
+1. `scripts/convert.py` extracts markdown with [pymupdf4llm](https://github.com/pymupdf/RAG), filters images with simple heuristics and leaves placeholders for the rest.
+2. Claude looks at each remaining image and either drops it or writes a description.
+3. `scripts/finalize.py` puts the descriptions in place.
+
+## Quality
+
+See [evals/](evals/). Results are added after the first evaluation run.
+
+## Development
+
+```bash
+python -m venv .venv && .venv/Scripts/python -m pip install -r pdf-to-markdown/requirements.txt pytest
+.venv/Scripts/python -m pytest
+```
+
+## License
+
+MIT for this repository. The dependency PyMuPDF is licensed under AGPL-3.0 (or commercially by Artifex). Check that this fits your use.
